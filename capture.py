@@ -1,4 +1,5 @@
-from lib.crawler import URLState, AsyncCrawler, Crawler, LimitCrawler, CrawlerConfig
+from lib.crawler import AsyncCrawler, Crawler, LimitCrawler
+from lib.crawlerconfig import CrawlerConfig
 from lib.logGrabber import ChromeDriver, LogEntryGrabber, LogParser
 import argparse, sys
 

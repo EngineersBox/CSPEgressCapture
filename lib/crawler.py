@@ -2,31 +2,9 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlsplit
 from collections import deque
 import requests, requests.exceptions, sys, asyncio, uuid
-
-LINE_STRING = "--------------------------------------------------------------------"
-
-class URLState:
-
-    def __init__(self, new_urls=deque([]), processed_urls=set(), local_urls=set(), foreign_urls=set(), broken_urls=set()):
-        # a queue of urls to be crawled
-        self.new_urls = new_urls
-        # a set of urls that we have already crawled
-        self.processed_urls = processed_urls
-        # a set of domains inside the target website
-        self.local_urls = local_urls
-        # a set of domains outside the target website
-        self.foreign_urls = foreign_urls
-        # a set of broken urls
-        self.broken_urls = broken_urls
-
-class CrawlerConfig:
-
-    def __init__(self, domain, ofile, limit, mute, asynchronous):
-        self.domain = domain
-        self.ofile = ofile
-        self.limit = limit
-        self.mute = mute
-        self.asynchronous = asynchronous
+from urlstate import URLState
+from crawlerconfig import CrawlerConfig
+from reporter import Reporter
 
 class ICrawlerBase:
 
@@ -100,16 +78,17 @@ class ICrawlerBase:
         return self.url_state
 
     def reportResults(self):
+        reporter = Reporter(self.url_state, self.config)
         if self.config.mute is False:
             if self.config.ofile is not None:
-                return report_file(self.config.ofile, self.url_state.processed_urls, self.url_state.local_urls, self.url_state.foreign_urls, self.url_state.broken_urls)
+                return reporter.reportToFile()
             else:
-                return report(self.url_state.processed_urls, self.url_state.local_urls, self.url_state.foreign_urls, self.url_state.broken_urls)
+                return reporter.report()
         else:
             if self.config.ofile is not None:
-                return mute_report_file(self.config.ofile, self.url_state.local_urls)
+                return reporter.muteReportToFile()
             else:
-                return mute_report(self.url_state.local_urls)
+                return reporter.muteReport()
 
 class AsyncCrawler(ICrawlerBase):
 
@@ -198,16 +177,17 @@ class LimitCrawler(ICrawlerBase):
                 self.url_state.new_urls.append(i)
 
     def reportLimitResults(self):
+        reporter = Reporter(self.url_state, self.config)
         if self.config.mute is False:
             if self.config.ofile is not None:
-                return limit_report_file(self.config.limit, self.config.ofile, self.url_state.processed_urls, self.url_state.limit_urls, self.url_state.broken_urls)
+                return reporter.limitReportToFile()
             else:
-                return limit_report(self.config.limit, self.url_state.processed_urls, self.url_state.limit_urls, self.url_state.broken_urls)
+                return reporter.limitReport()
         else:
             if self.config.ofile is not None:
-                return limit_mute_report_file(self.config.limit, self.config.ofile, self.url_state.limit_urls)
+                return reporter.limitMuteReportToFile()
             else:
-                return limit_mute_report(self.config.limit, self.url_state.limit_urls)
+                return reporter.limitMuteReport()
 
     def crawl(self):
         try:
@@ -220,110 +200,3 @@ class LimitCrawler(ICrawlerBase):
 
         except KeyboardInterrupt:
             sys.exit()
-
-
-def limit_report_file(limit, ofile, processed_urls, limit_urls, broken_urls):
-    with open(ofile, 'w') as f:
-        print(
-            LINE_STRING, file=f)
-        print("All found URLs:", file=f)
-        for i in processed_urls:
-            print(i, file=f)
-        print(
-            LINE_STRING, file=f)
-        print("All " + limit + "URLs:", file=f)
-        for j in limit_urls:
-            print(j, file=f)
-        print(
-            LINE_STRING, file=f)
-        print("All broken URL's:", file=f)
-        for z in broken_urls:
-            print(z, file=f)
-
-
-def limit_report(limit, processed_urls, limit_urls, broken_urls):
-    print(LINE_STRING)
-    print("All found URLs:")
-    for i in processed_urls:
-        print(i)
-    print(LINE_STRING)
-    print("All " + limit + " URLs:")
-    for j in limit_urls:
-        print(j)
-    print(LINE_STRING)
-    print("All broken URL's:")
-    for z in broken_urls:
-        print(z)
-
-
-def limit_mute_report_file(limit, ofile, limit_urls):
-    with open(ofile, 'w') as f:
-        print(
-            LINE_STRING, file=f)
-        print("All " + limit + " URLs:", file=f)
-        for j in limit_urls:
-            print(j, file=f)
-
-
-def limit_mute_report(limit, limit_urls):
-    print(LINE_STRING)
-    print("All " + limit + "URLs:")
-    for i in limit_urls:
-        print(i)
-
-def report_file(ofile, processed_urls, local_urls, foreign_urls, broken_urls):
-    with open(ofile, 'w') as f:
-        print(
-            LINE_STRING, file=f)
-        print("All found URLs:", file=f)
-        for i in processed_urls:
-            print(i, file=f)
-        print(
-            LINE_STRING, file=f)
-        print("All local URLs:", file=f)
-        for j in local_urls:
-            print(j, file=f)
-        print(
-            LINE_STRING, file=f)
-        print("All foreign URLs:", file=f)
-        for x in foreign_urls:
-            print(x, file=f)
-        print(LINE_STRING, file=f)
-        print("All broken URL's:", file=f)
-        for z in broken_urls:
-            print(z, file=f)
-
-
-def report(processed_urls, local_urls, foreign_urls, broken_urls):
-    print(LINE_STRING)
-    print("All found URLs:")
-    for i in processed_urls:
-        print(i)
-    print(LINE_STRING)
-    print("All local URLs:")
-    for j in local_urls:
-        print(j)
-    print(LINE_STRING)
-    print("All foreign URLs:")
-    for x in foreign_urls:
-        print(x)
-    print(LINE_STRING)
-    print("All broken URL's:")
-    for z in broken_urls:
-        print(z)
-
-
-def mute_report_file(ofile, local_urls):
-    with open(ofile, 'w') as f:
-        print(
-            LINE_STRING, file=f)
-        print("All local URLs:", file=f)
-        for j in local_urls:
-            print(j, file=f)
-
-
-def mute_report(local_urls):
-    print(LINE_STRING)
-    print("All local URLs:")
-    for i in local_urls:
-        print(i)
