@@ -20,7 +20,7 @@ class LogEntryGrabber:
         self.chrome_driver = chrome_driver.driver
         self.chrome_driver.initWebDriver()
 
-    def slurpLogs(self):
+    def slurpLogs(self, close_window_on_done: bool = True):
         """get log entreies from selenium and add to python logger before returning"""
         loglevels = { "NOTSET":0 , "DEBUG":10 ,"INFO": 20 , "WARNING":30, "ERROR":40, "SEVERE":40, "CRITICAL":50}
         browserlog = logging.getLogger("chrome")
@@ -32,6 +32,9 @@ class LogEntryGrabber:
                 browserlog.handle(rec)
             except:
                 print(entry)
+        if (close_window_on_done):
+            # Close the window to ensure no duplication if executing multiple times
+            self.driver.close()
         return self.slurped_logs
 
 class LogParser:
