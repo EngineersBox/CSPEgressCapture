@@ -28,7 +28,7 @@ class LogEntryGrabber:
         browserlog = logging.getLogger("chrome")
         #get browser logs
         self.slurped_logs = self.chrome_driver.get_log("browser")
-        for entry in slurped_logs:
+        for entry in self.slurped_logs:
             #convert broswer log to python log format
             rec = browserlog.makeRecord("%s.%s"%(browserlog.name,entry["source"]),loglevels.get(entry["level"]),".",0,entry["message"],None,None)
             rec.created = entry["timestamp"] /1000 # log using original timestamp.. us -> ms
@@ -66,7 +66,7 @@ class LogParser:
         with open(ifile, "r") as f:
             line = f.readline()
             while line != "":
-                logs.append(line)
+                self.logs.append(line)
                 line = f.readline()
 
     def writeMatchesToFile(self, ofile):
