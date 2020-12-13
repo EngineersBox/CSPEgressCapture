@@ -64,18 +64,20 @@ def createCrawler(config: CrawlerConfig):
     else:
         return LimitCrawler(config)
 
-def collectUrls(config: CrawlerConfig, crawler) -> set:
+def collectUrls(config: CrawlerConfig, crawler, include_foreign: bool = False) -> set:
     urls = set()
     if config.asynchronous is not None:
         urls = urls.union(crawler.url_state.processed_urls)
         urls = urls.union(crawler.url_state.local_urls)
-        urls = urls.union(crawler.url_state.foreign_urls)
+        if (include_foreign):
+            urls = urls.union(crawler.url_state.foreign_urls)
         urls = urls.difference(urls.broken_urls)
     else:
         for vals in crawler.tasks_url_state.values():
             urls = urls.union(vals.processed_urls)
             urls = urls.union(vals.local_urls)
-            urls = urls.union(vals.foreign_urls)
+            if (include_foreign):
+                urls = urls.union(vals.foreign_urls)
             urls = urls.difference(vals.broken_urls)
     return urls
 
