@@ -1,6 +1,6 @@
 from lib.crawler import URLState, AsyncCrawler, Crawler, LimitCrawler, CrawlerConfig
 from lib.logGrabber import ChromeDriver, LogEntryGrabber, LogParser
-import argparse, sys, re
+import argparse, sys
 
 CSP_LOG_TAG = "content-security-policy"
 

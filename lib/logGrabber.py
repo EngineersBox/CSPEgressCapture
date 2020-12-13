@@ -1,4 +1,4 @@
-import logging, re, time
+import logging, re
 from selenium import webdriver
 
 CONTAINS_STR = ".*%s.*%s"
