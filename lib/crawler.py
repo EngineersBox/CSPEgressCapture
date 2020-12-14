@@ -101,7 +101,7 @@ class AsyncCrawler(ICrawlerBase):
         self.tasks_url_state[task_id] = self.crawlUrlTask(self.config.domain)
         next_urls = self.tasks_url_state[task_id].new_urls
         try:
-            results = await asyncio.gather(*(self.crawlUrlTask(next_domain for next_domain in next_urls)))
+            results = await asyncio.gather(*(self.crawlUrlTask(next_domain) for next_domain in next_urls))
             for res in results:
                 self.tasks_url_state[str(uuid.uuid4())] = res
         except KeyboardInterrupt:
