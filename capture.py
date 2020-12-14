@@ -7,7 +7,7 @@ CSP_LOG_TAG = "content-security-policy"
 
 class ProgArgHandler:
 
-    def __init__(self, argv: list):
+    def __init__(self, argv: list = []):
         self.addArgs(argv)
 
     def addArgs(self, argv):
