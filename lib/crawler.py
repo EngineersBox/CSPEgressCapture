@@ -141,13 +141,6 @@ class LimitCrawler(ICrawlerBase):
             self.url_state.broken_urls.add(url)
             return
 
-        # extract base url to resolve relative links
-        parts = urlsplit(url)
-        base = "{0.netloc}".format(parts)
-        strip_base = base.replace("www.", "")
-        base_url = "{0.scheme}://{0.netloc}".format(parts)
-        path = url[:url.rfind('/')+1] if '/' in parts.path else url
-
         # create a beutiful soup for the html document
         soup = BeautifulSoup(response.text, "lxml")
 
