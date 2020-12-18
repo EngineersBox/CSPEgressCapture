@@ -1,5 +1,5 @@
-from urlstate import URLState
-from crawlerconfig import CrawlerConfig
+from lib.urlstate import URLState
+from lib.crawlerconfig import CrawlerConfig
 
 LINE_STRING = "--------------------------------------------------------------------"
 

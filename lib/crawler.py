@@ -2,9 +2,10 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlsplit
 from collections import deque
 import requests, requests.exceptions, sys, asyncio, uuid
-from urlstate import URLState
-from crawlerconfig import CrawlerConfig
-from reporter import Reporter
+
+from lib.urlstate import URLState
+from lib.crawlerconfig import CrawlerConfig
+from lib.reporter import Reporter
 
 class ICrawlerBase:
 
@@ -41,15 +42,9 @@ class ICrawlerBase:
         for i in self.url_state.local_urls:
             if not i in self.url_state.new_urls and not i in self.url_state.processed_urls:
                 self.url_state.new_urls.append(i)
-        return self.url_state
 
-    def crawlUrlTask(self):
-        # a queue of urls to be crawled
-        self.url_state = URLState(deque([self.config.domain]))
-        # move next url from the queue to the set of processed urls
-        url = self.url_state.new_urls.popleft()
+    def crawlUrlTask(self, url):
         self.url_state.processed_urls.add(url)
-        is_broken = False
         # get url's content
         print("Processing %s" % url)
         response = None
@@ -73,8 +68,7 @@ class ICrawlerBase:
             return self.url_state
 
         # extract base url to resolve relative links
-        self.url_state = self.extractResolveLinks(
-            self.url_state, response, url)
+        self.extractResolveLinks(response, url)
         return self.url_state
 
     def reportResults(self):
@@ -93,7 +87,7 @@ class ICrawlerBase:
 class AsyncCrawler(ICrawlerBase):
 
     def __init__(self, config: CrawlerConfig):
-        super(self, config)
+        super().__init__(config)
         self.tasks_url_state = {}
 
     async def crawl(self):
@@ -101,7 +95,7 @@ class AsyncCrawler(ICrawlerBase):
         self.tasks_url_state[task_id] = self.crawlUrlTask(self.config.domain)
         next_urls = self.tasks_url_state[task_id].new_urls
         try:
-            results = await asyncio.gather(*(self.crawlUrlTask(next_domain for next_domain in next_urls)))
+            results = await asyncio.gather(*(self.crawlUrlTask(next_domain) for next_domain in next_urls))
             for res in results:
                 self.tasks_url_state[str(uuid.uuid4())] = res
         except KeyboardInterrupt:
@@ -110,7 +104,7 @@ class AsyncCrawler(ICrawlerBase):
 class Crawler(ICrawlerBase):
 
     def __init__(self, config: CrawlerConfig):
-        super(self, config)
+        super().__init__(config)
 
     def crawl(self):
         # a queue of urls to be crawled
@@ -119,13 +113,8 @@ class Crawler(ICrawlerBase):
             # process urls one by one until we exhaust the queue
             while len(self.url_state.new_urls):
                 # move next url from the queue to the set of processed urls
-                url = self.url_state.new_urls.popleft()
-                res = self.crawlUrlTask(url)
-                self.url_state.processed_urls = set(self.url_state.processed_urls.union(res.processed_urls))
-                self.url_state.broken_urls = set(self.url_state.processed_urls.union(res.broken_urls))
-                self.url_state.new_urls = set(self.url_state.processed_urls.union(res.new_urls))
-                self.url_state.foreign_urls = set(self.url_state.processed_urls.union(res.foreign_urls))
-                self.url_state.local_urls = set(self.url_state.processed_urls.union(res.local_urls))
+                url = self.url_state.new_urls.pop()
+                self.crawlUrlTask(url)
 
             print()
             self.reportResults()
@@ -137,11 +126,11 @@ class Crawler(ICrawlerBase):
 class LimitCrawler(ICrawlerBase):
 
     def __init__(self, config: CrawlerConfig):
-        super(self, config)
+        super().__init__(config)
 
     def crawlLimitUrlTask(self):
         # move next url from the queue to the set of processed urls
-        url = self.url_state.new_urls.popleft()
+        url = self.url_state.new_urls.pop()
         self.url_state.processed_urls.add(url)
         # get url's content
         print("Processing %s" % url)
@@ -167,7 +156,7 @@ class LimitCrawler(ICrawlerBase):
             anchor = link.attrs["href"] if "href" in link.attrs else ''
             print(anchor)
 
-            if self.limit in anchor:
+            if self.config.limit in anchor:
                 self.url_state.limit_urls.add(anchor)
             else:
                 pass
@@ -196,7 +185,7 @@ class LimitCrawler(ICrawlerBase):
                 self.crawlLimitUrlTask()
 
             print()
-            self.reportLimitResults(self.config.ofile, self.config.mute)
+            self.reportLimitResults()
 
         except KeyboardInterrupt:
             sys.exit()

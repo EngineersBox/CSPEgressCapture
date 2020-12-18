@@ -7,7 +7,7 @@ CSP_LOG_TAG = "content-security-policy"
 
 class ProgArgHandler:
 
-    def __init__(self, argv: list):
+    def __init__(self, argv: list = []):
         self.addArgs(argv)
 
     def addArgs(self, argv):
@@ -24,7 +24,7 @@ class ProgArgHandler:
                                 help='limit search to the given domain instead of the domain derived from the URL. i.e: "github.com"')
         self.parser.add_argument('--mute', '-m', action="store_true",
                                 help='output only the URLs of pages within the domain that are not broken')
-        self.parser.add_argument('--asynchronous', 'a',
+        self.parser.add_argument('--asynchronous', '-a', action="store_true",
                                 help='run crawler asynchronously at each link')
 
     def parse(self) -> CrawlerConfig:
@@ -58,7 +58,7 @@ class ConsoleLogMatcher:
 
 def createCrawler(config: CrawlerConfig):
     if config.limit is None:
-        if config.asynchronous is None:
+        if not config.asynchronous or config.asynchronous is None:
             return Crawler(config)
         else:
             return AsyncCrawler(config)
@@ -67,12 +67,12 @@ def createCrawler(config: CrawlerConfig):
 
 def collectUrls(config: CrawlerConfig, crawler, include_foreign: bool = False) -> set:
     urls = set()
-    if config.asynchronous is not None:
+    if not config.asynchronous or config.asynchronous is None:
         urls = urls.union(crawler.url_state.processed_urls)
         urls = urls.union(crawler.url_state.local_urls)
         if (include_foreign):
             urls = urls.union(crawler.url_state.foreign_urls)
-        urls = urls.difference(urls.broken_urls)
+        urls = urls.difference(crawler.url_state.broken_urls)
     else:
         for vals in crawler.tasks_url_state.values():
             urls = urls.union(vals.processed_urls)
